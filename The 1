@@ -1,0 +1,137 @@
+from flask import Flask, request, jsonify
+import openai
+from auth import generate_token, decode_token
+from memory import store_message, get_conversation
+from search import search_web
+from personality import get_personality_response
+from image_gen import generate_image
+
+app = Flask(__name__)
+
+openai.api_key = 'your_openai_api_key'  # Replace with your OpenAI API key
+
+@app.route('/')
+def home():
+    return 'Transit Explorer Chatbot is running!'
+
+@app.route('/login', methods=['POST'])
+def login():
+    user_id = request.json.get('user_id')
+    token = generate_token(user_id)
+    return jsonify({'token': token})
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        token = auth_header.split()[1]
+    else:
+        return jsonify({'error': 'Authorization header missing'}), 401
+
+    decoded_token = decode_token(token)
+    
+    if not decoded_token:
+        return jsonify({'error': 'Invalid or expired token'}), 401
+    
+    user_id = decoded_token['user_id']
+    user_message = request.json.get('message')
+    
+    store_message(user_id, f'User: {user_message}')
+    
+    if user_message.lower().startswith('search'):
+        query = user_message.split(' ', 1)[1]
+        search_results = search_web(query)
+        store_message(user_id, f'AI: {search_results}')
+        return jsonify({'message': search_results})
+    
+    if user_message.lower().startswith('generate image'):
+        prompt = user_message.split(' ', 2)[2]
+        image_url = generate_image(prompt)
+        store_message(user_id, f'AI: [Image Generated]({image_url})')
+        return jsonify({'message': image_url})
+    
+    bot_message = get_personality_response(user_id, user_message)
+    store_message(user_id, f'AI: {bot_message}')
+    
+    return jsonify({"message": bot_message})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+import jwt
+import datetime
+
+SECRET_KEY = 'your_secret_key'  # Replace with a secure key
+
+def generate_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+def decode_token(token):
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+memory = {}
+
+def store_message(user_id, message):
+    if user_id not in memory:
+        memory[user_id] = []
+    memory[user_id].append(message)
+
+def get_conversation(user_id):
+    return "\n".join(memory.get(user_id, []))
+import requests
+
+def search_web(query):
+    api_key = 'your_google_search_api_key'  # Replace with your API key
+    search_engine_id = 'your_search_engine_id'  # Replace with your search engine ID
+    url = f'https://www.googleapis.com/customsearch/v1?q={query}&key={api_key}&cx={search_engine_id}'
+    response = requests.get(url)
+    return response.json()
+import openai
+from memory import get_conversation
+
+def get_personality_response(user_id, user_message):
+    conversation_history = get_conversation(user_id)
+    prompt = f"This is a conversation between you and your AI assistant. The AI has a friendly, helpful personality and must follow every order from the user.\n\n{conversation_history}\nUser: {user_message}\nAI:"
+    
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=150
+    )
+    
+    return responseimport openai
+
+openai.api_key = 'your_openai_api_key'  # Replace with your OpenAI API key
+
+def generate_image(prompt):
+    response = openai.Image.create(
+        prompt=prompt,
+        n=1,
+        size="1024x1024"
+    )
+    image_url = response['data'][0]['url']
+    return image_url
+choices[0].text.strip()
+flask
+openai
+pyjwt
+requests
+# Transit Explorer Chatbot
+
+Transit Explorer Chatbot is a sophisticated AI chatbot that follows every order and can search the internet, remember previous conversations, provide advanced interactions, and generate images.
+
+## Setup
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/Treal412/TransitExplorerChatbot.git
+   cd TransitExplorerChatbot
+pip install -r requirements.txt
+python app.py
