@@ -8,7 +8,7 @@ from image_gen import generate_image
 
 app = Flask(__name__)
 
-openai.api_key = 'your_openai_api_key'  # Replace with your OpenAI API key
+openai.api_key = 'org-4nhEKqz8cpnDJeQ9xJwyUTDy  # Replace with your OpenAI API key
 
 @app.route('/')
 def home():
